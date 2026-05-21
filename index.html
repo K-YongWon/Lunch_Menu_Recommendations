@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>점메추! 오늘의 점심 추천</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --panel-2: #f4f6f9;
+      --text: #111827;
+      --text-soft: #374151;
+      --muted: #6b7280;
+      --muted-2: #9ca3af;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+
+      --primary: #2BA8D6;
+      --primary-hover: #1F8FBD;
+      --primary-soft: #EAF6FC;
+
+      --accent: #EB5022;
+      --accent-hover: #CC3F15;
+      --accent-soft: #FCEAE3;
+
+      --car: #2BA8D6;
+      --car-soft: #EAF6FC;
+      --dinner: #8b5cf6;
+      --dinner-soft: #f3eefe;
+      --friday: #0d9488;
+      --friday-soft: #ccfbf1;
+
+      --danger: #ef4444;
+
+      --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.04);
+      --shadow-md: 0 4px 12px rgba(17, 24, 39, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+                   "Malgun Gothic", "Noto Sans KR", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 32px;
+      margin: 0 0 8px;
+      letter-spacing: -0.8px;
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    header h1 .blue { color: var(--primary); }
+    header h1 .orange { color: var(--accent); }
+
+    header p {
+      color: var(--muted);
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card h2 {
+      font-size: 12px;
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 8px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .mode-btn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
+      padding: 12px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      text-align: left;
+    }
+
+    .mode-btn:hover:not(.active) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      box-shadow: 0 4px 10px rgba(235, 80, 34, 0.28);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+    }
+
+    .mode-btn .mode-title { display: block; font-weight: 600; margin-bottom: 2px; }
+    .mode-btn .mode-desc { display: block; font-size: 11px; opacity: 0.85; }
+    .mode-btn.active .mode-title { font-weight: 800; }
+    .mode-btn.active .mode-desc { opacity: 0.95; }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .filter-chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-chip:hover:not(.active) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .filter-chip.active {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .filter-chip .check {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid currentColor;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .filter-chip.active .check {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .filter-chip.active .check::before {
+      content: "v";
+      font-weight: 900;
+    }
+
+    .candidate-info {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .candidate-info strong {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .pick-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(235, 80, 34, 0.3);
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    }
+
+    .pick-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 16px rgba(235, 80, 34, 0.35);
+    }
+    .pick-btn:active:not(:disabled) { transform: scale(0.98); }
+    .pick-btn:disabled {
+      background: var(--panel-2);
+      color: var(--muted-2);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .result {
+      margin-top: 18px;
+      padding: 24px;
+      background: linear-gradient(135deg, #EB5022 0%, #F47A21 100%);
+      border-radius: 12px;
+      text-align: center;
+      display: none;
+      box-shadow: 0 10px 30px rgba(235, 80, 34, 0.3);
+      color: white;
+    }
+
+    .result.show { display: block; animation: pop 0.3s ease-out; }
+
+    @keyframes pop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .result .label {
+      font-size: 12px;
+      opacity: 0.95;
+      margin-bottom: 6px;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    }
+
+    .result .name {
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.22);
+    }
+
+    .result .meta {
+      font-size: 13px;
+      opacity: 0.95;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .result-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .result-actions button {
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--accent);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      padding: 9px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    .result-actions button:hover {
+      background: white;
+      transform: translateY(-1px);
+    }
+
+    .result-actions button:active { transform: translateY(0); }
+
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .add-form input[type="text"] {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 13px;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .add-form input[type="text"]::placeholder {
+      color: var(--muted-2);
+    }
+
+    .add-form input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    .add-form button {
+      background: var(--text);
+      border: 1px solid var(--text);
+      color: white;
+      padding: 11px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    .add-form button:hover {
+      background: var(--text-soft);
+      border-color: var(--text-soft);
+    }
+
+    .restaurant-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .restaurant-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--panel-2);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      transition: background 0.15s;
+    }
+
+    .restaurant-item:hover {
+      background: var(--panel);
+      border-color: var(--border);
+    }
+
+    .restaurant-item .name-wrap {
+      flex: 1;
+      min-width: 120px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .restaurant-item .name {
+      font-size: 14px;
+      font-weight: 500;
+      cursor: text;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      outline: none;
+      min-width: 60px;
+      color: var(--text);
+    }
+
+    .restaurant-item .name:hover {
+      border-color: var(--border-strong);
+      background: var(--panel);
+    }
+
+    .restaurant-item .name:focus {
+      border-color: var(--primary);
+      background: var(--panel);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    .tag-toggles {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tag-toggle {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .tag-toggle:hover:not(.active) {
+      border-color: var(--border-strong);
+      color: var(--text-soft);
+    }
+
+    .tag-toggle.car.active {
+      background: var(--car-soft);
+      border-color: var(--car);
+      color: var(--car);
+    }
+
+    .tag-toggle.dinner.active {
+      background: var(--dinner-soft);
+      border-color: var(--dinner);
+      color: var(--dinner);
+    }
+
+    .tag-toggle.friday.active {
+      background: var(--friday-soft);
+      border-color: var(--friday);
+      color: var(--friday);
+    }
+
+    .restaurant-item .count {
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 6px;
+      min-width: 64px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .restaurant-item .actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .restaurant-item .actions button {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+
+    .restaurant-item .actions button:hover {
+      background: var(--panel-2);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    .restaurant-item .delete:hover {
+      border-color: var(--danger) !important;
+      color: var(--danger) !important;
+      background: #fef2f2 !important;
+    }
+
+    .restaurant-item.filtered-out {
+      opacity: 0.55;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      font-size: 14px;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .footer-actions button {
+      flex: 1;
+      min-width: 120px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 9px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .footer-actions button:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px 12px;
+      }
+
+      .container { max-width: 100%; }
+
+      header { margin-bottom: 22px; }
+      header h1 { font-size: 28px; }
+      header p { font-size: 13px; }
+
+      .card {
+        padding: 18px 16px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+      }
+
+      .modes { grid-template-columns: 1fr; }
+
+      .mode-btn { padding: 12px 14px; }
+
+      .pick-btn {
+        padding: 16px;
+        font-size: 17px;
+      }
+
+      .result { padding: 22px 18px; }
+      .result .name { font-size: 24px; }
+
+      .add-form input[type="text"] {
+        font-size: 16px;
+      }
+
+      .restaurant-item {
+        padding: 10px;
+        gap: 6px;
+      }
+
+      .restaurant-item .name-wrap {
+        flex: 1 1 100%;
+        min-width: 0;
+        margin-bottom: 2px;
+      }
+
+      .restaurant-item .name {
+        font-size: 16px;
+      }
+
+      .restaurant-item .count {
+        font-size: 11px;
+        min-width: 58px;
+        padding: 4px 6px;
+      }
+
+      .restaurant-item .actions button {
+        width: 32px;
+        height: 32px;
+      }
+
+      .tag-toggle {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+
+      .footer-actions button {
+        min-width: 100px;
+        font-size: 11px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .filter-row { gap: 6px; }
+
+      .filter-chip {
+        flex: 1 1 100%;
+        justify-content: center;
+        padding: 10px 14px;
+      }
+
+      .restaurant-item {
+        justify-content: space-between;
+      }
+
+      .restaurant-item .tag-toggles {
+        flex: 1 1 auto;
+      }
+
+      .footer-actions button {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="blue">점</span><span class="orange">메</span><span class="blue">추</span></h1>
+      <p>오늘 점심 뭐 먹지? 방문 횟수 기반 추천</p>
+    </header>
+
+    <section class="card">
+      <h2>1. 추천 옵션</h2>
+
+      <p class="section-label">추첨 방식 (단일 선택)</p>
+      <div class="modes" id="modes">
+        <button class="mode-btn active" data-mode="balanced">
+          <span class="mode-title">균형</span>
+          <span class="mode-desc">너무 자주 간 곳은 살짝 줄임</span>
+        </button>
+        <button class="mode-btn" data-mode="frequent">
+          <span class="mode-title">자주 간 곳 우선</span>
+          <span class="mode-desc">인기 식당 위주</span>
+        </button>
+        <button class="mode-btn" data-mode="rare">
+          <span class="mode-title">안 간 곳 우선</span>
+          <span class="mode-desc">새로운 곳 도전</span>
+        </button>
+        <button class="mode-btn" data-mode="random">
+          <span class="mode-title">완전 랜덤</span>
+          <span class="mode-desc">모든 식당 동일 확률</span>
+        </button>
+      </div>
+
+      <p class="section-label">필터 (다중 선택)</p>
+      <div class="filter-row" id="filters">
+        <button class="filter-chip" data-filter="allowCar">
+          <span class="check"></span>차량 이용 가능
+        </button>
+        <button class="filter-chip active" data-filter="excludeDinner">
+          <span class="check"></span>회식장소 제외
+        </button>
+        <button class="filter-chip active" data-filter="excludePapa">
+          <span class="check"></span>파파존스 제외
+        </button>
+      </div>
+
+      <div class="candidate-info" id="candidateInfo"></div>
+
+      <button class="pick-btn" id="pickBtn">점메추!</button>
+
+      <div class="result" id="result">
+        <div class="label">오늘의 추천</div>
+        <div class="name" id="resultName"></div>
+        <div class="meta" id="resultMeta"></div>
+        <div class="result-actions">
+          <button id="acceptBtn">여기로 결정 (방문 +1)</button>
+          <button id="rerollBtn">다시 뽑기</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. 식당 목록</h2>
+      <div class="add-form">
+        <input type="text" id="newName" placeholder="식당 이름 입력" maxlength="30" />
+        <button id="addBtn">추가</button>
+      </div>
+      <ul class="restaurant-list" id="list"></ul>
+
+      <div class="footer-actions">
+        <button id="resetCountsBtn">방문 횟수 초기화</button>
+        <button id="exportBtn">데이터 내보내기</button>
+        <button id="importBtn">데이터 불러오기</button>
+        <input type="file" id="importFile" accept="application/json" hidden />
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "lunch-picker-data-v2";
+    const LEGACY_KEY = "lunch-picker-data-v1";
+
+    const DEFAULT_RESTAURANTS = [
+      { name: "김치찌개집",       count: 8, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "돈까스 마스터",    count: 5, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "스시 오마카세",    count: 2, needsCar: false, isDinnerPlace: true,  isFridayOnly: false },
+      { name: "쌀국수 사이공",    count: 4, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "중화반점",         count: 6, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "파스타 트라토리아",count: 3, needsCar: true,  isDinnerPlace: false, isFridayOnly: false },
+      { name: "샐러드바 그린",    count: 1, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "분식왕",           count: 7, needsCar: false, isDinnerPlace: false, isFridayOnly: false },
+      { name: "한우 갈빗집",      count: 2, needsCar: true,  isDinnerPlace: true,  isFridayOnly: false },
+      { name: "외곽 막국수",      count: 1, needsCar: true,  isDinnerPlace: false, isFridayOnly: false },
+      { name: "파파존스",         count: 3, needsCar: false, isDinnerPlace: false, isFridayOnly: true  },
+    ];
+
+    const DEFAULT_FILTERS = {
+      allowCar: false,
+      excludeDinner: true,
+      excludePapa: true,
+    };
+
+    let state = {
+      mode: "balanced",
+      filters: { ...DEFAULT_FILTERS },
+      restaurants: [],
+      lastPickId: null,
+    };
+
+    function genId() {
+      return "r_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    }
+
+    function normalizeRestaurant(r) {
+      return {
+        id: r.id || genId(),
+        name: String(r.name || "").trim(),
+        count: Math.max(0, Number(r.count) || 0),
+        needsCar: Boolean(r.needsCar),
+        isDinnerPlace: Boolean(r.isDinnerPlace),
+        isFridayOnly: Boolean(r.isFridayOnly),
+      };
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.restaurants)) {
+            state.restaurants = parsed.restaurants
+              .map(normalizeRestaurant)
+              .filter(r => r.name.length > 0);
+            state.mode = parsed.mode || "balanced";
+            state.filters = { ...DEFAULT_FILTERS, ...(parsed.filters || {}) };
+            return;
+          }
+        }
+
+        const legacy = localStorage.getItem(LEGACY_KEY);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          if (Array.isArray(parsed.restaurants)) {
+            state.restaurants = parsed.restaurants
+              .map(normalizeRestaurant)
+              .filter(r => r.name.length > 0);
+            state.mode = parsed.mode || "balanced";
+            state.filters = { ...DEFAULT_FILTERS };
+            save();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load saved data", e);
+      }
+
+      state.restaurants = DEFAULT_RESTAURANTS.map(normalizeRestaurant);
+    }
+
+    function save() {
+      const data = {
+        mode: state.mode,
+        filters: state.filters,
+        restaurants: state.restaurants,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function getCandidates() {
+      return state.restaurants.filter(r => {
+        if (!state.filters.allowCar && r.needsCar) return false;
+        if (state.filters.excludeDinner && r.isDinnerPlace) return false;
+        if (state.filters.excludePapa && r.isFridayOnly) return false;
+        return true;
+      });
+    }
+
+    function calculateWeights(mode, restaurants) {
+      if (restaurants.length === 0) return [];
+      const counts = restaurants.map(r => r.count);
+      const maxCount = Math.max(...counts, 1);
+
+      return restaurants.map(r => {
+        switch (mode) {
+          case "random":   return 1;
+          case "frequent": return Math.pow(r.count + 1, 1.5);
+          case "rare":     return Math.pow(maxCount - r.count + 1, 1.5);
+          case "balanced":
+          default:         return 1 / Math.sqrt(r.count + 1);
+        }
+      });
+    }
+
+    function pickRestaurant() {
+      const candidates = getCandidates();
+      if (candidates.length === 0) return null;
+
+      const weights = calculateWeights(state.mode, candidates);
+      const total = weights.reduce((a, b) => a + b, 0);
+      if (total <= 0) return candidates[0];
+
+      let pick = Math.random() * total;
+      for (let i = 0; i < candidates.length; i++) {
+        pick -= weights[i];
+        if (pick <= 0) return candidates[i];
+      }
+      return candidates[candidates.length - 1];
+    }
+
+    function modeLabel(mode) {
+      return ({
+        balanced: "균형",
+        frequent: "자주 간 곳 우선",
+        rare:     "안 간 곳 우선",
+        random:   "완전 랜덤",
+      })[mode] || mode;
+    }
+
+    function filterSummary() {
+      const parts = [];
+      parts.push(state.filters.allowCar ? "차량 가능" : "차량 X");
+      parts.push(state.filters.excludeDinner ? "회식 제외" : "회식 포함");
+      parts.push(state.filters.excludePapa ? "파파존스 제외" : "파파존스 포함");
+      return parts.join(" · ");
+    }
+
+    function renderModes() {
+      document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === state.mode);
+      });
+    }
+
+    function renderFilters() {
+      document.querySelectorAll(".filter-chip").forEach(btn => {
+        btn.classList.toggle("active", !!state.filters[btn.dataset.filter]);
+      });
+    }
+
+    function renderCandidateInfo() {
+      const total = state.restaurants.length;
+      const eligible = getCandidates().length;
+      const info = document.getElementById("candidateInfo");
+      info.innerHTML = `현재 후보: <strong>${eligible}곳</strong> / 전체 ${total}곳`;
+
+      const pickBtn = document.getElementById("pickBtn");
+      pickBtn.disabled = eligible === 0;
+      pickBtn.textContent = eligible === 0 ? "추천할 식당이 없어요" : "점메추!";
+    }
+
+    function renderList() {
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      if (state.restaurants.length === 0) {
+        list.innerHTML = '<li class="empty-state">식당을 추가해주세요</li>';
+        return;
+      }
+
+      const candidateIds = new Set(getCandidates().map(r => r.id));
+      const sorted = [...state.restaurants].sort((a, b) => b.count - a.count);
+
+      sorted.forEach(r => {
+        const li = document.createElement("li");
+        li.className = "restaurant-item" + (candidateIds.has(r.id) ? "" : " filtered-out");
+        li.dataset.id = r.id;
+        li.innerHTML = `
+          <div class="name-wrap">
+            <span class="name" contenteditable="true" spellcheck="false"></span>
+          </div>
+          <div class="tag-toggles">
+            <button class="tag-toggle car ${r.needsCar ? "active" : ""}" data-tag="needsCar" title="차로 가야 함">차</button>
+            <button class="tag-toggle dinner ${r.isDinnerPlace ? "active" : ""}" data-tag="isDinnerPlace" title="회식장소">회식</button>
+            <button class="tag-toggle friday ${r.isFridayOnly ? "active" : ""}" data-tag="isFridayOnly" title="금요일에만 갈 수 있음">금</button>
+          </div>
+          <span class="count">방문 ${r.count}회</span>
+          <div class="actions">
+            <button class="inc" title="방문 +1">+</button>
+            <button class="dec" title="방문 -1">-</button>
+            <button class="delete" title="삭제">x</button>
+          </div>
+        `;
+
+        const nameEl = li.querySelector(".name");
+        nameEl.textContent = r.name;
+
+        nameEl.addEventListener("keydown", e => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            nameEl.blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            nameEl.textContent = r.name;
+            nameEl.blur();
+          }
+        });
+
+        nameEl.addEventListener("blur", () => {
+          renameRestaurant(r.id, nameEl.textContent);
+        });
+
+        li.querySelector(".tag-toggle.car").addEventListener("click", () => toggleTag(r.id, "needsCar"));
+        li.querySelector(".tag-toggle.dinner").addEventListener("click", () => toggleTag(r.id, "isDinnerPlace"));
+        li.querySelector(".tag-toggle.friday").addEventListener("click", () => toggleTag(r.id, "isFridayOnly"));
+        li.querySelector(".inc").addEventListener("click", () => updateCount(r.id, 1));
+        li.querySelector(".dec").addEventListener("click", () => updateCount(r.id, -1));
+        li.querySelector(".delete").addEventListener("click", () => deleteRestaurant(r.id));
+
+        list.appendChild(li);
+      });
+    }
+
+    function renderAll() {
+      renderModes();
+      renderFilters();
+      renderCandidateInfo();
+      renderList();
+    }
+
+    function showResult(restaurant) {
+      const el = document.getElementById("result");
+      document.getElementById("resultName").textContent = restaurant.name;
+      const tags = [];
+      if (restaurant.needsCar) tags.push("차로 이동");
+      if (restaurant.isDinnerPlace) tags.push("회식장소");
+      if (restaurant.isFridayOnly) tags.push("금요일 전용");
+      const tagText = tags.length > 0 ? ` · ${tags.join(", ")}` : "";
+      document.getElementById("resultMeta").textContent =
+        `지금까지 ${restaurant.count}회 방문${tagText} · ${modeLabel(state.mode)} · ${filterSummary()}`;
+      el.classList.add("show");
+      state.lastPickId = restaurant.id;
+    }
+
+    function hideResult() {
+      document.getElementById("result").classList.remove("show");
+      state.lastPickId = null;
+    }
+
+    function addRestaurant(name) {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (state.restaurants.some(r => r.name === trimmed)) {
+        alert("이미 같은 이름의 식당이 있습니다.");
+        return;
+      }
+      state.restaurants.push(normalizeRestaurant({
+        name: trimmed,
+        count: 0,
+      }));
+      save();
+      renderAll();
+    }
+
+    function renameRestaurant(id, newName) {
+      const r = state.restaurants.find(x => x.id === id);
+      if (!r) return;
+      const trimmed = newName.trim();
+
+      if (!trimmed) {
+        alert("이름은 비워둘 수 없습니다.");
+        renderList();
+        return;
+      }
+      if (trimmed === r.name) return;
+      if (state.restaurants.some(x => x.id !== id && x.name === trimmed)) {
+        alert("이미 같은 이름의 식당이 있습니다.");
+        renderList();
+        return;
+      }
+      r.name = trimmed;
+      save();
+    }
+
+    function toggleTag(id, tag) {
+      const r = state.restaurants.find(x => x.id === id);
+      if (!r) return;
+      r[tag] = !r[tag];
+      save();
+      renderAll();
+    }
+
+    function updateCount(id, delta) {
+      const r = state.restaurants.find(x => x.id === id);
+      if (!r) return;
+      r.count = Math.max(0, r.count + delta);
+      save();
+      renderList();
+    }
+
+    function deleteRestaurant(id) {
+      const r = state.restaurants.find(x => x.id === id);
+      if (!r) return;
+      if (!confirm(`'${r.name}' 식당을 삭제할까요?`)) return;
+      state.restaurants = state.restaurants.filter(x => x.id !== id);
+      save();
+      renderAll();
+    }
+
+    function resetCounts() {
+      if (!confirm("모든 방문 횟수를 0으로 초기화할까요?")) return;
+      state.restaurants.forEach(r => (r.count = 0));
+      save();
+      renderList();
+    }
+
+    function exportData() {
+      const blob = new Blob(
+        [JSON.stringify({ restaurants: state.restaurants }, null, 2)],
+        { type: "application/json" }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lunch-picker-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!Array.isArray(parsed.restaurants)) throw new Error("invalid format");
+          if (!confirm("기존 데이터를 덮어쓸까요?")) return;
+          state.restaurants = parsed.restaurants
+            .map(normalizeRestaurant)
+            .filter(r => r.name.length > 0);
+          save();
+          renderAll();
+          alert("불러오기 완료");
+        } catch (err) {
+          alert("파일 형식이 올바르지 않습니다.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById("modes").addEventListener("click", e => {
+      const btn = e.target.closest(".mode-btn");
+      if (!btn) return;
+      state.mode = btn.dataset.mode;
+      save();
+      renderModes();
+    });
+
+    document.getElementById("filters").addEventListener("click", e => {
+      const btn = e.target.closest(".filter-chip");
+      if (!btn) return;
+      const key = btn.dataset.filter;
+      state.filters[key] = !state.filters[key];
+      save();
+      renderFilters();
+      renderCandidateInfo();
+      renderList();
+    });
+
+    document.getElementById("pickBtn").addEventListener("click", () => {
+      const picked = pickRestaurant();
+      if (!picked) {
+        alert("현재 조건에 맞는 식당이 없습니다. 필터를 조정하거나 식당을 추가해주세요.");
+        return;
+      }
+      showResult(picked);
+    });
+
+    document.getElementById("rerollBtn").addEventListener("click", () => {
+      const picked = pickRestaurant();
+      if (picked) showResult(picked);
+    });
+
+    document.getElementById("acceptBtn").addEventListener("click", () => {
+      if (!state.lastPickId) return;
+      const r = state.restaurants.find(x => x.id === state.lastPickId);
+      if (!r) return;
+      updateCount(state.lastPickId, 1);
+      alert(`'${r.name}' 방문 기록을 추가했습니다.`);
+      hideResult();
+      renderCandidateInfo();
+    });
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const nameInput = document.getElementById("newName");
+      addRestaurant(nameInput.value);
+      nameInput.value = "";
+      nameInput.focus();
+    });
+
+    document.getElementById("newName").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("addBtn").click();
+    });
+
+    document.getElementById("resetCountsBtn").addEventListener("click", resetCounts);
+    document.getElementById("exportBtn").addEventListener("click", exportData);
+    document.getElementById("importBtn").addEventListener("click", () => {
+      document.getElementById("importFile").click();
+    });
+    document.getElementById("importFile").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) importData(file);
+      e.target.value = "";
+    });
+
+    load();
+    renderAll();
+  </script>
+</body>
+</html>
