@@ -259,6 +259,12 @@
       font-weight: 900;
     }
 
+    .filter-chip.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     .candidate-info {
       font-size: 13px;
       color: var(--muted);
@@ -743,6 +749,9 @@
         <button class="filter-chip" data-filter="allowCar">
           <span class="check"></span>차량 이용 가능
         </button>
+        <button class="filter-chip disabled" data-filter="carOnly" id="carOnlyFilter" disabled>
+          <span class="check"></span>차량 전용
+        </button>
         <button class="filter-chip" data-filter="todayIsFriday">
           <span class="check"></span>오늘은 금요일
         </button>
@@ -766,7 +775,7 @@
     <section class="card">
       <div class="card-title">
         <h2>식당 목록</h2>
-        <p class="subtitle">추가·수정·방문 기록이 시트에 자동으로 저장되어 공유됩니다</p>
+        <p class="subtitle">식당 추가·삭제는 페이지에서, 방문 횟수는 추천 확정 시에만 반영됩니다</p>
       </div>
       <div class="add-form">
         <input type="text" id="newName" placeholder="식당 이름 입력" maxlength="30" />
@@ -775,10 +784,7 @@
       <ul class="restaurant-list" id="list"></ul>
 
       <div class="footer-actions">
-        <button id="resetCountsBtn">방문 횟수 초기화</button>
         <button id="exportBtn">데이터 내보내기</button>
-        <button id="importBtn">데이터 불러오기</button>
-        <input type="file" id="importFile" accept="application/json" hidden />
       </div>
     </section>
   </div>
@@ -800,6 +806,7 @@
     // ============================================================
     const DEFAULT_FILTERS = {
       allowCar: false,
+      carOnly: false,
       todayIsFriday: false,
     };
 
@@ -825,8 +832,10 @@
           const f = parsed.filters;
           state.filters = { ...DEFAULT_FILTERS };
           if ("allowCar" in f) state.filters.allowCar = !!f.allowCar;
+          if ("carOnly" in f) state.filters.carOnly = !!f.carOnly;
           if ("excludePapa" in f) state.filters.todayIsFriday = !f.excludePapa;
           if ("todayIsFriday" in f) state.filters.todayIsFriday = !!f.todayIsFriday;
+          if (!state.filters.allowCar) state.filters.carOnly = false;
         }
       } catch (e) {
         console.warn("Failed to load prefs", e);
@@ -977,8 +986,14 @@
     // ============================================================
     function getCandidates() {
       return state.restaurants.filter(r => {
-        if (!state.filters.allowCar && r.needsCar) return false;
         if (!state.filters.todayIsFriday && r.isFridayOnly) return false;
+
+        if (!state.filters.allowCar) {
+          if (r.needsCar) return false;
+          return true;
+        }
+
+        if (state.filters.carOnly && !r.needsCar) return false;
         return true;
       });
     }
@@ -1026,7 +1041,11 @@
 
     function filterSummary() {
       const parts = [];
-      parts.push(state.filters.allowCar ? "차량 O" : "차량 X");
+      if (state.filters.allowCar) {
+        parts.push(state.filters.carOnly ? "차량 전용" : "차량 가능");
+      } else {
+        parts.push("차량 X");
+      }
       parts.push(state.filters.todayIsFriday ? "오늘은 금요일" : "금요일 전용 제외");
       return parts.join(" · ");
     }
@@ -1042,7 +1061,14 @@
 
     function renderFilters() {
       document.querySelectorAll(".filter-chip").forEach(btn => {
-        btn.classList.toggle("active", !!state.filters[btn.dataset.filter]);
+        const key = btn.dataset.filter;
+        btn.classList.toggle("active", !!state.filters[key]);
+
+        if (key === "carOnly") {
+          const disabled = !state.filters.allowCar;
+          btn.classList.toggle("disabled", disabled);
+          btn.disabled = disabled;
+        }
       });
     }
 
@@ -1101,8 +1127,6 @@
           </div>
           <span class="count">방문 ${r.count}회</span>
           <div class="actions">
-            <button class="dec" title="방문 -1">-</button>
-            <button class="inc" title="방문 +1">+</button>
             <button class="delete" title="삭제">x</button>
           </div>
         `;
@@ -1121,8 +1145,6 @@
 
         li.querySelector(".tag-toggle.car").addEventListener("click", () => toggleTag(r.id, "needsCar"));
         li.querySelector(".tag-toggle.friday").addEventListener("click", () => toggleTag(r.id, "isFridayOnly"));
-        li.querySelector(".dec").addEventListener("click", () => updateCount(r.id, -1));
-        li.querySelector(".inc").addEventListener("click", () => updateCount(r.id, 1));
         li.querySelector(".delete").addEventListener("click", () => deleteRestaurant(r.id));
 
         list.appendChild(li);
@@ -1190,7 +1212,7 @@
       }
       const tempId = genLocalId();
       const optimistic = normalizeRestaurant({
-        id: tempId, name: trimmed, count: 0,
+        id: tempId, name: trimmed, count: 1,
       });
       state.restaurants.push(optimistic);
       renderAll();
@@ -1254,11 +1276,11 @@
       }
     }
 
-    async function updateCount(id, delta) {
+    async function incrementVisitCount(id) {
       const r = state.restaurants.find(x => x.id === id);
       if (!r) return;
       const prev = r.count;
-      r.count = Math.max(0, r.count + delta);
+      r.count = prev + 1;
       renderList();
       renderCandidateInfo();
 
@@ -1290,25 +1312,6 @@
       }
     }
 
-    async function resetCounts() {
-      if (!confirm("모든 방문 횟수를 0으로 초기화할까요? (다른 동료에게도 적용됩니다)")) return;
-
-      const prevList = state.restaurants.map(r => ({ ...r }));
-      state.restaurants.forEach(r => (r.count = 0));
-      renderList();
-
-      try {
-        const result = await apiPost({ action: "resetCounts" });
-        state.restaurants = result.map(normalizeRestaurant);
-        renderAll();
-        showToast("방문 횟수 초기화 완료", "success");
-      } catch (err) {
-        state.restaurants = prevList;
-        renderAll();
-        showToast("초기화 실패: " + err.message, "error");
-      }
-    }
-
     function exportData() {
       const blob = new Blob(
         [JSON.stringify({ restaurants: state.restaurants }, null, 2)],
@@ -1320,30 +1323,6 @@
       a.download = `lunch-picker-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    }
-
-    async function importData(file) {
-      const reader = new FileReader();
-      reader.onload = async e => {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (!Array.isArray(parsed.restaurants)) throw new Error("invalid format");
-          if (!confirm("시트의 기존 데이터를 덮어쓸까요? (다른 동료에게도 적용됩니다)")) return;
-          showLoading(true);
-          const restaurants = parsed.restaurants.map(normalizeRestaurant).filter(r => r.name);
-          const result = await apiPost({ action: "replace", restaurants });
-          state.restaurants = result.map(normalizeRestaurant);
-          state.lastSyncAt = Date.now();
-          setSyncStatus("ok", "방금 동기화됨");
-          renderAll();
-          showToast(`${restaurants.length}개의 식당으로 교체 완료`, "success");
-        } catch (err) {
-          showToast("불러오기 실패: " + (err.message || "파일 형식 오류"), "error");
-        } finally {
-          showLoading(false);
-        }
-      };
-      reader.readAsText(file);
     }
 
     // ============================================================
@@ -1359,9 +1338,14 @@
 
     document.getElementById("filters").addEventListener("click", e => {
       const btn = e.target.closest(".filter-chip");
-      if (!btn) return;
+      if (!btn || btn.disabled) return;
       const key = btn.dataset.filter;
       state.filters[key] = !state.filters[key];
+
+      if (key === "allowCar" && !state.filters.allowCar) {
+        state.filters.carOnly = false;
+      }
+
       savePrefs();
       renderFilters();
       renderCandidateInfo();
@@ -1387,7 +1371,7 @@
       const r = state.restaurants.find(x => x.id === state.lastPickId);
       if (!r) return;
       const name = r.name;
-      await updateCount(state.lastPickId, 1);
+      await incrementVisitCount(state.lastPickId);
       hideResult();
       showToast(`'${name}' 방문 +1`, "success");
     });
@@ -1403,17 +1387,7 @@
       if (e.key === "Enter") document.getElementById("addBtn").click();
     });
 
-    document.getElementById("resetCountsBtn").addEventListener("click", resetCounts);
     document.getElementById("exportBtn").addEventListener("click", exportData);
-    document.getElementById("importBtn").addEventListener("click", () => {
-      document.getElementById("importFile").click();
-    });
-    document.getElementById("importFile").addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (file) importData(file);
-      e.target.value = "";
-    });
-
     document.getElementById("syncBtn").addEventListener("click", () => fetchFromSheet());
 
     document.addEventListener("visibilitychange", () => {
